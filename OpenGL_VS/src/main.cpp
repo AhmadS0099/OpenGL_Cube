@@ -45,7 +45,7 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-// Simple elastic collision between 2 balls
+// elastic collision between 2 balls
 void resolveBallCollision(Ball& a, Ball& b) {
     float dx = b.x - a.x;
     float dy = b.y - a.y;
@@ -67,7 +67,7 @@ void resolveBallCollision(Ball& a, Ball& b) {
     b.vx -= impulse * nx;
     b.vy -= impulse * ny;
 
-    // Optional: push them apart to avoid overlap
+
     float overlap = (2 * BALL_RADIUS - dist) / 2.0f;
     a.x -= overlap * nx;
     a.y -= overlap * ny;
@@ -78,31 +78,48 @@ void resolveBallCollision(Ball& a, Ball& b) {
 int main() {
     srand(static_cast<unsigned>(time(0)));
 
+
+    // init GLFW
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Cloning Bouncing Balls", nullptr, nullptr);
+    
+    //Cretee a window
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Bouncing Balls", nullptr, nullptr);
     if (!window) return -1;
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) return -1;
 
     const char* vertexShaderSource = R"(
     #version 330 core
-    layout (location = 0) in vec2 aPos;
-    uniform vec2 offset;
-    void main() {
-        gl_Position = vec4(aPos + offset, 0.0, 1.0);
-    })";
+layout (location = 0) in vec2 aPos;
+uniform vec2 offset;
+out vec2 FragPos;
+
+void main() {
+    FragPos = aPos;  // pass to fragment shader
+    gl_Position = vec4(aPos + offset, 0.0, 1.0);
+}
+)";
 
     const char* fragmentShaderSource = R"(
-    #version 330 core
-    out vec4 FragColor;
-    uniform vec3 color;
-    void main() {
-        FragColor = vec4(color, 1.0);
-    })";
+#version 330 core
+in vec2 FragPos;
+out vec4 FragColor;
+uniform vec3 color;
+
+void main() {
+    // Scale FragPos to exaggerate the gradient for small balls
+    float dist = length(FragPos * 30.0); // <<< increased scale factor
+    float intensity = 1.0 - dist;
+    intensity = clamp(intensity, 0.0, 1.0);
+    FragColor = vec4(color * intensity, 1.0);
+}
+
+)";
 
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
     GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
@@ -113,6 +130,7 @@ int main() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    // oute cirkle
     std::vector<float> circleVertices = generateCircleVertices(CIRCLE_RADIUS, CIRCLE_SEGMENTS);
     GLuint circleVAO, circleVBO;
     glGenVertexArrays(1, &circleVAO);
@@ -123,6 +141,10 @@ int main() {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // ball
+    // Vertex Array object  VAO 
+    // Vertex Buffer Object VBO
+    //
     std::vector<float> ballVertices = generateCircleVertices(BALL_RADIUS, CIRCLE_SEGMENTS);
     GLuint ballVAO, ballVBO;
     glGenVertexArrays(1, &ballVAO);
@@ -130,6 +152,7 @@ int main() {
     glBindVertexArray(ballVAO);
     glBindBuffer(GL_ARRAY_BUFFER, ballVBO);
     glBufferData(GL_ARRAY_BUFFER, ballVertices.size() * sizeof(float), ballVertices.data(), GL_STATIC_DRAW);
+    
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -142,6 +165,8 @@ int main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
+    // main looop
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
