@@ -228,7 +228,21 @@ void main() {
         glBindVertexArray(ballVAO);
         for (const auto& ball : balls) {
             glUniform2f(offsetLoc, ball.x, ball.y);
-            glUniform3f(colorLoc, 1.0f, 0.5f, 0.2f);
+            for (size_t i = 0; i < balls.size(); ++i) {
+                const auto& ball = balls[i];
+
+                // Choose color based on index
+                if (i % 10 == 0) {
+                    glUniform3f(colorLoc, 0.2f, 1.0f, 0.5f); // Bright green for every 10th ball
+                }
+                else {
+                    glUniform3f(colorLoc, 1.0f, 0.5f, 0.2f); // Default orange
+                }
+
+                glUniform2f(offsetLoc, ball.x, ball.y);
+                glDrawArrays(GL_TRIANGLE_FAN, 0, CIRCLE_SEGMENTS + 2);
+            }
+
             glDrawArrays(GL_TRIANGLE_FAN, 0, CIRCLE_SEGMENTS + 2);
         }
 
