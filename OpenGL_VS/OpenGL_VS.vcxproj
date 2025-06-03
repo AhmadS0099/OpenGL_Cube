@@ -135,12 +135,15 @@
     <ClCompile Include="src\Ball.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="glfw3.dll" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Ball.h" />
     <ClInclude Include="src\Globals.h" />
+    <ClInclude Include="src\Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

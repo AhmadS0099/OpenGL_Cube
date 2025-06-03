@@ -2,90 +2,20 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
-#include <cmath>
 #include <cstdlib>
 #include <ctime>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 800;
-const float CIRCLE_RADIUS = 0.7f;
-const int CIRCLE_SEGMENTS = 100;
-const float BALL_RADIUS = CIRCLE_RADIUS / 40.0f;
-const float INITIAL_SPEED = 0.0004f;
-
-struct Ball {
-    float x, y;
-    float vx, vy;
-};
-
-std::vector<float> generateCircleVertices(float radius, int segments) {
-    std::vector<float> vertices;
-    vertices.push_back(0.0f);
-    vertices.push_back(0.0f);
-    for (int i = 0; i <= segments; ++i) {
-        float angle = 2.0f * M_PI * i / segments;
-        vertices.push_back(radius * cos(angle));
-        vertices.push_back(radius * sin(angle));
-    }
-    return vertices;
-}
-
-GLuint compileShader(GLenum type, const char* source) {
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, nullptr);
-    glCompileShader(shader);
-    return shader;
-}
-
-void framebuffer_size_callback(GLFWwindow*, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
-// elastic collision between 2 balls
-void resolveBallCollision(Ball& a, Ball& b) {
-    float dx = b.x - a.x;
-    float dy = b.y - a.y;
-    float dist = std::sqrt(dx * dx + dy * dy);
-    if (dist == 0.0f) return;
-
-    float nx = dx / dist;
-    float ny = dy / dist;
-
-    float dvx = b.vx - a.vx;
-    float dvy = b.vy - a.vy;
-    float dot = dvx * nx + dvy * ny;
-
-    if (dot > 0) return;
-
-    float impulse = 2.0f * dot / 2.0f; // equal mass
-    a.vx += impulse * nx;
-    a.vy += impulse * ny;
-    b.vx -= impulse * nx;
-    b.vy -= impulse * ny;
-
-
-    float overlap = (2 * BALL_RADIUS - dist) / 2.0f;
-    a.x -= overlap * nx;
-    a.y -= overlap * ny;
-    b.x += overlap * nx;
-    b.y += overlap * ny;
-}
+#include "Globals.h"
+#include "Ball.h"
+#include "Utils.h"
 
 int main() {
     srand(static_cast<unsigned>(time(0)));
 
-
-    // init GLFW
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    
-    //Cretee a window
+
     GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Bouncing Balls", nullptr, nullptr);
     if (!window) return -1;
     glfwMakeContextCurrent(window);
@@ -95,31 +25,29 @@ int main() {
 
     const char* vertexShaderSource = R"(
     #version 330 core
-layout (location = 0) in vec2 aPos;
-uniform vec2 offset;
-out vec2 FragPos;
+    layout (location = 0) in vec2 aPos;
+    uniform vec2 offset;
+    out vec2 FragPos;
 
-void main() {
-    FragPos = aPos;  // pass to fragment shader
-    gl_Position = vec4(aPos + offset, 0.0, 1.0);
-}
-)";
+    void main() {
+        FragPos = aPos;
+        gl_Position = vec4(aPos + offset, 0.0, 1.0);
+    }
+    )";
 
     const char* fragmentShaderSource = R"(
-#version 330 core
-in vec2 FragPos;
-out vec4 FragColor;
-uniform vec3 color;
+    #version 330 core
+    in vec2 FragPos;
+    out vec4 FragColor;
+    uniform vec3 color;
 
-void main() {
-    // Scale FragPos to exaggerate the gradient for small balls
-    float dist = length(FragPos * 30.0); // <<< increased scale factor
-    float intensity = 1.0 - dist;
-    intensity = clamp(intensity, 0.0, 1.0);
-    FragColor = vec4(color * intensity, 1.0);
-}
-
-)";
+    void main() {
+        float dist = length(FragPos * 30.0);
+        float intensity = 1.0 - dist;
+        intensity = clamp(intensity, 0.0, 1.0);
+        FragColor = vec4(color * intensity, 1.0);
+    }
+    )";
 
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
     GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
@@ -130,7 +58,6 @@ void main() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // oute cirkle
     std::vector<float> circleVertices = generateCircleVertices(CIRCLE_RADIUS, CIRCLE_SEGMENTS);
     GLuint circleVAO, circleVBO;
     glGenVertexArrays(1, &circleVAO);
@@ -141,10 +68,6 @@ void main() {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // ball
-    // Vertex Array object  VAO 
-    // Vertex Buffer Object VBO
-    //
     std::vector<float> ballVertices = generateCircleVertices(BALL_RADIUS, CIRCLE_SEGMENTS);
     GLuint ballVAO, ballVBO;
     glGenVertexArrays(1, &ballVAO);
@@ -152,7 +75,6 @@ void main() {
     glBindVertexArray(ballVAO);
     glBindBuffer(GL_ARRAY_BUFFER, ballVBO);
     glBufferData(GL_ARRAY_BUFFER, ballVertices.size() * sizeof(float), ballVertices.data(), GL_STATIC_DRAW);
-    
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -165,8 +87,6 @@ void main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
-    // main looop
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -179,7 +99,6 @@ void main() {
 
         std::vector<Ball> newBalls;
 
-        // Update ball positions and handle wall collisions
         for (auto& ball : balls) {
             ball.x += ball.vx;
             ball.y += ball.vy;
@@ -194,18 +113,15 @@ void main() {
                 ball.x -= nx * 0.001f;
                 ball.y -= ny * 0.001f;
 
-                // Spawn a new ball at center with small random direction
                 float angle = static_cast<float>(rand()) / RAND_MAX * 2.0f * M_PI;
                 newBalls.push_back({
                     0.0f, 0.0f,
-                    // all.x, ball.y, spawn from the collision side, but it wont work cause it crashes
                     INITIAL_SPEED * cos(angle),
                     INITIAL_SPEED * sin(angle)
                     });
             }
         }
 
-        // Handle ball-ball collisions
         for (size_t i = 0; i < balls.size(); ++i) {
             for (size_t j = i + 1; j < balls.size(); ++j) {
                 float dx = balls[j].x - balls[i].x;
@@ -217,32 +133,20 @@ void main() {
             }
         }
 
-        // Append new balls
         balls.insert(balls.end(), newBalls.begin(), newBalls.end());
 
-        // count the balls
         std::cout << "Ball count: " << balls.size() << std::endl;
 
-
-        // Draw balls
         glBindVertexArray(ballVAO);
-        for (const auto& ball : balls) {
-            glUniform2f(offsetLoc, ball.x, ball.y);
-            for (size_t i = 0; i < balls.size(); ++i) {
-                const auto& ball = balls[i];
-
-                // Choose color based on index
-                if (i % 10 == 0) {
-                    glUniform3f(colorLoc, 0.2f, 1.0f, 0.5f); // Bright green for every 10th ball
-                }
-                else {
-                    glUniform3f(colorLoc, 1.0f, 0.5f, 0.2f); // Default orange
-                }
-
-                glUniform2f(offsetLoc, ball.x, ball.y);
-                glDrawArrays(GL_TRIANGLE_FAN, 0, CIRCLE_SEGMENTS + 2);
+        for (size_t i = 0; i < balls.size(); ++i) {
+            const auto& ball = balls[i];
+            if (i % 10 == 0) {
+                glUniform3f(colorLoc, 0.2f, 1.0f, 0.5f);
             }
-
+            else {
+                glUniform3f(colorLoc, 1.0f, 0.5f, 0.2f);
+            }
+            glUniform2f(offsetLoc, ball.x, ball.y);
             glDrawArrays(GL_TRIANGLE_FAN, 0, CIRCLE_SEGMENTS + 2);
         }
 
