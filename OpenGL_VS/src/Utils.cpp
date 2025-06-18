@@ -1,6 +1,9 @@
 #include "Utils.h"
 #include <iostream>
 
+
+
+
 std::vector<float> generateCircleVertices(float radius, int segments) {
     std::vector<float> vertices;
     vertices.push_back(0.0f);

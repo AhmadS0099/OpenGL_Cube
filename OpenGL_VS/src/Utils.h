@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>   
 
 
+
 std::vector<float> generateCircleVertices(float radius, int segments);
 
 GLuint compileShader(GLenum type, const char* source);
