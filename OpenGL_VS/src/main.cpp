@@ -138,7 +138,7 @@ int main() {
                         0.0f, 0.0f,
                         INITIAL_SPEED * cos(angle),
                         INITIAL_SPEED * sin(angle)
-                    });
+                        });
                 }
             }
 
